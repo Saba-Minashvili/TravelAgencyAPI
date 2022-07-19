@@ -3,6 +3,7 @@ using Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 using Domain.Repositories;
+using Encoder.Abstraction;
 using Services.Abstractions;
 using System.Globalization;
 
@@ -12,11 +13,13 @@ namespace Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IEncodeService _encoder;
 
-        public ApartmentService(IUnitOfWork unitOfWork, IMapper mapper)
+        public ApartmentService(IUnitOfWork unitOfWork, IMapper mapper, IEncodeService encoder)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _encoder = encoder;
         }
 
         public async Task<IEnumerable<ApartmentDto>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -62,6 +65,7 @@ namespace Services
             {
                 throw new NullReferenceException("Data of apartments is null.");
             }
+
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             var filteredApartments = apartments
                 .Where(o => Convert.ToDateTime(o.From) >= Convert.ToDateTime(convertedFrom)
@@ -88,9 +92,7 @@ namespace Services
 
             var apartmentDto = _mapper.Map<ApartmentDto>(apartment);
 
-#pragma warning disable CS8604 // Possible null reference argument.
-            apartmentDto.ImageBase64 = DecodeFrom64(apartmentDto.ImageBase64);
-#pragma warning restore CS8604 // Possible null reference argument.
+            apartmentDto.ImageBase64 = _encoder.DecodeFromBase64(apartment.ImageBase64);
 
             return apartmentDto;
         }
@@ -103,14 +105,12 @@ namespace Services
             {
                 throw new ApartmentAvailabilityDateException("Invalid 'From' and 'To' dates. They cannot be equal or be in the past, the must be in the future.");
             }
-#pragma warning disable CS8604 // Possible null reference argument.
-            apartment.ImageBase64 = EncodeTo64(apartment.ImageBase64);
+            apartment.ImageBase64 = _encoder.EncodeToBase64(apartment.ImageBase64);
             apartment.From = ConvertToValidDateFormat(apartmentDto.From);
             apartment.To = ConvertToValidDateFormat(apartmentDto.To);
             apartment.IsTaken = false;
             apartment.IsTakenFrom = "";
             apartment.IsTakenTo = "";
-#pragma warning restore CS8604 // Possible null reference argument.
 
             _unitOfWork.ApartmentRepository.CreateAsync(apartment);
 
@@ -155,39 +155,11 @@ namespace Services
             apartment.BedsNumber = apartmentDto.BedsNumber;
             apartment.City = apartmentDto.City;
             apartment.DistanceToCenter = apartmentDto.DistanceToCenter;
-#pragma warning disable CS8604 // Possible null reference argument.
-            apartment.ImageBase64 = EncodeTo64(apartmentDto.ImageBase64);
-#pragma warning restore CS8604 // Possible null reference argument.
+            apartment.ImageBase64 = _encoder.EncodeToBase64(apartmentDto.ImageBase64);
             apartment.From = ConvertToValidDateFormat(apartmentDto.From);
             apartment.To = ConvertToValidDateFormat(apartmentDto.To);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-
-        private string EncodeTo64(string toEncode)
-        {
-            byte[] toEncodeAsBytes = System.Text.ASCIIEncoding.ASCII.GetBytes(toEncode);
-            string result = System.Convert.ToBase64String(toEncodeAsBytes);
-
-            if(result != null)
-            {
-                return result;
-            }
-
-            return "";
-        }
-
-        private string DecodeFrom64(string encodedString)
-        {
-            byte[] encodedStringAsBytes = System.Convert.FromBase64String(encodedString);
-            string result = System.Text.ASCIIEncoding.ASCII.GetString(encodedStringAsBytes);
-
-            if(result != null)
-            {
-                return result;
-            }
-
-            return "";
         }
 
         private string? ConvertToValidDateFormat(string? dateTime)
@@ -239,9 +211,7 @@ namespace Services
                     apartment.IsTakenTo = "";
                 }
 
-#pragma warning disable CS8604 // Possible null reference argument.
-                apartment.ImageBase64 = DecodeFrom64(apartment.ImageBase64);
-#pragma warning restore CS8604 // Possible null reference argument.
+                apartment.ImageBase64 = _encoder.DecodeFromBase64(apartment.ImageBase64);
             }
 
             return collection;

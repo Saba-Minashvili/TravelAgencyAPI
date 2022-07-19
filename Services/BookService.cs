@@ -2,6 +2,7 @@
 using Contracts;
 using Domain.Entities;
 using Domain.Repositories;
+using Encoder.Abstraction;
 using Services.Abstractions;
 
 namespace Services
@@ -10,24 +11,29 @@ namespace Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IEncodeService _encoder;
 
-        public BookService(IUnitOfWork unitOfWork, IMapper mapper)
+        public BookService(IUnitOfWork unitOfWork, IMapper mapper, IEncodeService encoder)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _encoder = encoder;
         }
 
         public async Task<IEnumerable<BookDto>> GetMyBookingsAsync(string? userId, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new ArgumentNullException("User id is null or empty.");
+            }
+
             var myBookings = await _unitOfWork.BookRepository.GetMyBookingsAsync(userId, cancellationToken);
             
             var myBookingsDto = _mapper.Map<IEnumerable<BookDto>>(myBookings);
 
             foreach(var booking in myBookingsDto)
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                booking.ApartmentImage = DecodeFrom64(booking.ApartmentImage);
-#pragma warning restore CS8604 // Possible null reference argument.
+                booking.ApartmentImage = _encoder.DecodeFromBase64(booking.ApartmentImage);
             }
 
             return myBookingsDto;
@@ -41,19 +47,5 @@ namespace Services
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
-
-        private string DecodeFrom64(string encodedString)
-        {
-            byte[] encodedStringAsBytes = System.Convert.FromBase64String(encodedString);
-            string result = System.Text.ASCIIEncoding.ASCII.GetString(encodedStringAsBytes);
-
-            if (result != null)
-            {
-                return result;
-            }
-
-            return "";
-        }
-
     }
 }

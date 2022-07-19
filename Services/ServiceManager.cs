@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Domain.Entities;
 using Domain.Repositories;
+using Encoder.Abstraction;
 using Microsoft.AspNetCore.Identity;
 using Services.Abstractions;
 
@@ -15,14 +16,14 @@ namespace Services
         private readonly Lazy<IBookService> _bookService;
         private readonly Lazy<IBookRequestService> _bookRequestService;
 
-        public ServiceManager(IUnitOfWork unitOfWork, IMapper mapper, UserManager<User> userManager)
+        public ServiceManager(IUnitOfWork unitOfWork, IMapper mapper, IEncodeService encoder, UserManager<User> userManager)
         {
-            _userService = new Lazy<IUserService>(() => new UserService(unitOfWork, mapper, userManager));
-            _apartmentService = new Lazy<IApartmentService>(() => new ApartmentService(unitOfWork, mapper));
-            _guestService = new Lazy<IGuestService>(() => new GuestService(unitOfWork, mapper));
+            _userService = new Lazy<IUserService>(() => new UserService(unitOfWork, mapper, encoder, userManager));
+            _apartmentService = new Lazy<IApartmentService>(() => new ApartmentService(unitOfWork, mapper, encoder));
+            _guestService = new Lazy<IGuestService>(() => new GuestService(unitOfWork, mapper, encoder));
             _guestRequestService = new Lazy<IGuestRequestService>(() => new GuestRequestService(unitOfWork));
-            _bookService = new Lazy<IBookService>(() => new BookService(unitOfWork, mapper));
-            _bookRequestService = new Lazy<IBookRequestService>(() => new BookRequestService(unitOfWork, mapper));
+            _bookService = new Lazy<IBookService>(() => new BookService(unitOfWork, mapper, encoder));
+            _bookRequestService = new Lazy<IBookRequestService>(() => new BookRequestService(unitOfWork));
         }
 
         public IUserService UserService => _userService.Value;

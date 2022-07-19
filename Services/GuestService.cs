@@ -2,6 +2,7 @@
 using Contracts;
 using Domain.Entities;
 using Domain.Repositories;
+using Encoder.Abstraction;
 using Services.Abstractions;
 
 namespace Services
@@ -10,11 +11,13 @@ namespace Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IEncodeService _encoder;
 
-        public GuestService(IUnitOfWork unitOfWork, IMapper mapper)
+        public GuestService(IUnitOfWork unitOfWork, IMapper mapper, IEncodeService encoder)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _encoder = encoder;
         }
 
         public async Task<IEnumerable<GuestDto>> MyGuestsAsync(string hostUserId, CancellationToken cancellationToken)
@@ -25,9 +28,7 @@ namespace Services
 
             foreach(var guest in guestsDto)
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                guest.UserPhoto = DecodeFrom64(guest.UserPhoto);
-#pragma warning restore CS8604 // Possible null reference argument.
+                guest.UserPhoto = _encoder.DecodeFromBase64(guest.UserPhoto);
             }
 
             return guestsDto;
@@ -44,9 +45,7 @@ namespace Services
 
             var guestDto = _mapper.Map<GuestDto>(guest);
 
-#pragma warning disable CS8604 // Possible null reference argument.
-            guestDto.UserPhoto = DecodeFrom64(guest.UserPhoto);
-#pragma warning restore CS8604 // Possible null reference argument.
+            guestDto.UserPhoto = _encoder.DecodeFromBase64(guest.UserPhoto);
 
             return guestDto;
         }
@@ -60,19 +59,6 @@ namespace Services
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return guestDto;
-        }
-
-        private string DecodeFrom64(string encodedString)
-        {
-            byte[] encodedStringAsBytes = System.Convert.FromBase64String(encodedString);
-            string result = System.Text.ASCIIEncoding.ASCII.GetString(encodedStringAsBytes);
-
-            if (result != null)
-            {
-                return result;
-            }
-
-            return "";
         }
     }
 }

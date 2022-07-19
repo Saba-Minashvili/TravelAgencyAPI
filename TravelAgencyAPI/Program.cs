@@ -1,6 +1,8 @@
 using Domain.Entities;
 using Domain.Entities.Authentication;
 using Domain.Repositories;
+using Encoder;
+using Encoder.Abstraction;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -85,6 +87,7 @@ builder.Services.AddAuthentication(x =>
 // Add services to the container.
 
 builder.Services.AddScoped<IServiceManager, ServiceManager>();
+builder.Services.AddScoped<IEncodeService, EncodeService>();
 builder.Services.AddTransient(typeof(IUnitOfWork), typeof(UnitOfWork));
 builder.Services.AddScoped<IJwtAuthenticationService, JwtAuthenticationService>();
 

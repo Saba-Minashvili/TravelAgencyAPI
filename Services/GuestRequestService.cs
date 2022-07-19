@@ -15,6 +15,10 @@ namespace Services
 
         public async Task AcceptGuestRequestAsync(string? guestUserId, string? hostUserId, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrEmpty(guestUserId) || string.IsNullOrEmpty(hostUserId))
+            {
+                throw new ArgumentNullException("User id is null or empty.");
+            }
             // This guest is need for following reason: when host user declines or accepts particular guests,
             // it should be removed from 'MyGuests' lists
             var guest = await _unitOfWork.GuestRepository.GetGuestByIdAsync(guestUserId, cancellationToken);
@@ -26,10 +30,26 @@ namespace Services
 
             var host = await _unitOfWork.UserRepository.GetByIdAsync(hostUserId, cancellationToken);
 
+            if(host == null)
+            {
+                throw new NullReferenceException("Host user is null");
+            }
+
             // List of bookings of particular guest (guest with 'guestUserId' Id)
             var guestBookings = await _unitOfWork.BookRepository.GetMyBookingsAsync(guestUserId, cancellationToken);
+
+            if(guestBookings == null)
+            {
+                throw new NullReferenceException("Data of bookings is null");
+            }
+
             // Particular booking of that guest.
             var guestBooking = guestBookings.FirstOrDefault(o => o.HostUserId == hostUserId);
+
+            if(guestBooking == null)
+            {
+                throw new NullReferenceException("Booking of guest is null");
+            }
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
             if (host.Apartment.IsTaken == true 
@@ -40,12 +60,11 @@ namespace Services
                 throw new ApartmentAlreadyTakenException($"This apartment is already taken from {host.Apartment.IsTakenFrom} to {host.Apartment.IsTakenTo}" +
                     $". You can't accept two guests for one apartment .");
             }
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
             if (guestBooking.IsAccepted == true && guestBooking.IsPending == false)
             {
                 throw new RequestAlreadyAcceptedException("Request is already accepted.");
             }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
             if (guestBooking.IsPending == false && guestBooking.IsAccepted == false)
             {
                 throw new RequestAlreadyDeclinedException("Request is already declined. You can't approve declined request.");
@@ -65,6 +84,11 @@ namespace Services
 
         public async Task DeclineGuestRequestAsync(string? guestUserId, string? hostUserId, CancellationToken cancellationToken = default)
         {
+            if(string.IsNullOrEmpty(guestUserId) || string.IsNullOrEmpty(hostUserId))
+            {
+                throw new ArgumentNullException("User id is null or empty.");
+            }
+
             // This guest is need for following reason: when host user declines or accepts particular guests,
             // it should be removed from 'MyGuests' lists
             var guest = await _unitOfWork.GuestRepository.GetGuestByIdAsync(guestUserId, cancellationToken);
@@ -75,14 +99,23 @@ namespace Services
             }
 
             var guestBookings = await _unitOfWork.BookRepository.GetMyBookingsAsync(guestUserId, cancellationToken);
+
+            if(guestBookings == null)
+            {
+                throw new NullReferenceException("Data of booking is null");
+            }
+
             var guestBooking = guestBookings.FirstOrDefault(o => o.HostUserId == hostUserId);
 
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+            if(guestBooking == null)
+            {
+                throw new NullReferenceException("Booking of guest is null");
+            }
+
             if (guestBooking.IsAccepted == true && guestBooking.IsPending == false)
             {
                 throw new RequestAlreadyAcceptedException("Request is already accepted. You can't decline approved request.");
             }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
             if (guestBooking.IsPending == false && guestBooking.IsAccepted == false)
             {
                 throw new RequestAlreadyDeclinedException("Request is already declined.");

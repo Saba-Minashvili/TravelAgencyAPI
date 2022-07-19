@@ -3,6 +3,7 @@ using Contracts;
 using Domain.Entities;
 using Domain.Exceptions;
 using Domain.Repositories;
+using Encoder.Abstraction;
 using Microsoft.AspNetCore.Identity;
 using Services.Abstractions;
 
@@ -12,12 +13,14 @@ namespace Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IEncodeService _encoder;
         private readonly UserManager<User> _userManager;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, UserManager<User> userManager)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IEncodeService encoder, UserManager<User> userManager)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _encoder = encoder;
             _userManager = userManager;
         }
 
@@ -29,16 +32,19 @@ namespace Services
 
             foreach (var user in usersDto)
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                user.Photo = DecodeFrom64(user.Photo);
-#pragma warning restore CS8604 // Possible null reference argument.
+                user.Photo = _encoder.DecodeFromBase64(user.Photo);
             }
 
             return usersDto;
         }
 
-        public async Task<UserDto> GetByIdAsync(string userId, CancellationToken cancellationToken = default)
+        public async Task<UserDto> GetByIdAsync(string? userId, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new ArgumentNullException(nameof(userId));
+            }
+
             var user = await _unitOfWork.UserRepository.GetByIdAsync(userId, cancellationToken);
 
             if(user == null)
@@ -47,9 +53,7 @@ namespace Services
             }
 
             var userDto = _mapper.Map<UserDto>(user);
-#pragma warning disable CS8604 // Possible null reference argument.
-            userDto.Photo = DecodeFrom64(userDto.Photo);
-#pragma warning restore CS8604 // Possible null reference argument.
+            userDto.Photo = _encoder.DecodeFromBase64(user.Photo);
             
             return userDto;
         }
@@ -59,7 +63,7 @@ namespace Services
             try
             {
                 var user = _mapper.Map<User>(userDto);
-#pragma warning disable CS8604 // Possible null reference argument.
+
                 if (await ValidatePasswordAsync(user, userDto.Password) == false)
                 {
                     throw new InvalidPasswordException();
@@ -83,7 +87,6 @@ namespace Services
                 await _userManager.CreateAsync(user);
 
                 return userDto;
-#pragma warning restore CS8604 // Possible null reference argument.
             }
             catch(ArgumentNullException)
             {
@@ -100,7 +103,13 @@ namespace Services
         {
             try
             {
+                if (string.IsNullOrEmpty(userId))
+                {
+                    throw new ArgumentNullException(nameof(userId));
+                }
+
                 var user = await _unitOfWork.UserRepository.GetByIdAsync(userId, cancellationToken);
+
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
                 if (userDto.Login.ToLower() != user.Login.ToLower() && await CheckDuplicateName(userDto.Login) == true)
                 {
@@ -112,6 +121,7 @@ namespace Services
                 {
                     throw new AlreadyExistsException("Email");
                 }
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                 if (userDto.FirstName == "")
                 {
@@ -133,9 +143,8 @@ namespace Services
                     user.Photo = "";
                 }else
                 {
-                    user.Photo = EncodeTo64(userDto.Photo);
+                    user.Photo = _encoder.EncodeToBase64(userDto.Photo);
                 }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
                 user.FirstName = userDto.FirstName;
                 user.LastName = userDto.LastName;
@@ -158,9 +167,15 @@ namespace Services
             }
         }
 
-        private async Task<bool> ValidatePasswordAsync(User user, string password)
+        private async Task<bool> ValidatePasswordAsync(User user, string? password)
         {
             IdentityResult result;
+
+            if (string.IsNullOrEmpty(password))
+            {
+                return false;
+            }
+
             foreach (IPasswordValidator<User> passwordValidator in _userManager.PasswordValidators)
             {
                 result = await passwordValidator.ValidateAsync(_userManager, user, password);
@@ -174,57 +189,28 @@ namespace Services
             return true;
         }
 
-        private async Task<bool> CheckDuplicateName(string login)
+        private async Task<bool> CheckDuplicateName(string? login)
         {
+            if (string.IsNullOrEmpty(login))
+            {
+                return false;
+            }
+
             var result = await _userManager.FindByNameAsync(login);
-            if (result != null)
-            {
-                // Means that User with similar Login was found.
-                return true;
-            }
-            else
+
+            return result != null;
+        }
+
+        private async Task<bool> CheckDuplicateEmail(string? email)
+        {
+            if (string.IsNullOrEmpty(email))
             {
                 return false;
             }
-        }
 
-        private async Task<bool> CheckDuplicateEmail(string email)
-        {
             var result = await _userManager.FindByEmailAsync(email);
-            if(result != null)
-            {
-                // Means that User with similar email was found.
-                return true;
-            }else
-            {
-                return false;
-            }
-        }
 
-        private string EncodeTo64(string toEncode)
-        {
-            byte[] toEncodeAsBytes = System.Text.ASCIIEncoding.ASCII.GetBytes(toEncode);
-            string result = System.Convert.ToBase64String(toEncodeAsBytes);
-
-            if (result != null)
-            {
-                return result;
-            }
-
-            return "";
-        }
-
-        private string DecodeFrom64(string encodedString)
-        {
-            byte[] encodedStringAsBytes = System.Convert.FromBase64String(encodedString);
-            string result = System.Text.ASCIIEncoding.ASCII.GetString(encodedStringAsBytes);
-
-            if (result != null)
-            {
-                return result;
-            }
-
-            return "";
+            return result != null;
         }
     }
 }

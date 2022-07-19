@@ -11,12 +11,10 @@ namespace Services
     internal sealed class BookRequestService : IBookRequestService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
 
-        public BookRequestService(IUnitOfWork unitOfWork, IMapper mapper)
+        public BookRequestService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
-            _mapper = mapper;
         }
 
         public async Task SendBookRequestAsync(BookRequestDto bookRequestDto, CancellationToken cancellationToken = default)

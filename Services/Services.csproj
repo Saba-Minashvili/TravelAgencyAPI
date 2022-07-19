@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
+    <ProjectReference Include="..\Encoder\Encoder.csproj" />
     <ProjectReference Include="..\Service.Abstractions\Services.Abstractions.csproj" />
   </ItemGroup>
 
