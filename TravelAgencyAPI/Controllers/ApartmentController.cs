@@ -20,13 +20,28 @@ namespace TravelAgency.Controllers
         {
             var apartments = await _serviceManager.ApartmentService.GetAllAsync(cancellationToken);
 
+            if (apartments == null)
+            {
+                return BadRequest("Unable to get data of apartments");
+            }
+
             return Ok(apartments);
         }
 
         [HttpGet("{userId}")]
-        public async Task<IActionResult> GetApartmentByUserId(string userId, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetApartmentByUserId(string? userId, CancellationToken cancellationToken = default)
         {
+            if(userId == null || userId == String.Empty)
+            {
+                return BadRequest($"Invalid request. {nameof(userId)} cannnot be null or empty.");
+            }
+
             var apartment = await _serviceManager.ApartmentService.GetByUserIdAsync(userId, cancellationToken);
+
+            if(apartment == null)
+            {
+                return BadRequest("Unable to get apartment.");
+            }
 
             return Ok(apartment);
         }
@@ -34,7 +49,16 @@ namespace TravelAgency.Controllers
         [HttpGet("[action]/{bedsNumber}")]
         public async Task<IActionResult> FilterByBedsNumber(int bedsNumber, CancellationToken cancellationToken = default)
         {
+            if(bedsNumber == 0)
+            {
+                return BadRequest($"Invalid request. {nameof(bedsNumber)} cannot be 0.");
+            }
             var apartments = await _serviceManager.ApartmentService.FilterByBedsNumber(bedsNumber, cancellationToken);
+
+            if(apartments == null)
+            {
+                return BadRequest("Unable to get apartments");
+            }
 
             return Ok(apartments);
         }
@@ -44,27 +68,51 @@ namespace TravelAgency.Controllers
         {
             var apartments = await _serviceManager.ApartmentService.SearchApartmentAsync(searchApartmentDto, cancellationToken);
 
+            if(apartments == null)
+            {
+                return BadRequest("Unable to get data of apartments");
+            }
+
             return Ok(apartments);
         }
 
-        [HttpPost("[action]")]
+        [HttpPost]
         public async Task<IActionResult> AddApartment([FromBody] ApartmentDto apartmentDto, CancellationToken cancellationToken = default)
         {
             var apartment = await _serviceManager.ApartmentService.CreateAsync(apartmentDto, cancellationToken);
 
+            if(apartment == null)
+            {
+                return BadRequest("Unable to add apartment.");
+            }
+
             return Ok(apartment);
         }
 
-        [HttpPut("UpdateApartment/{userId}")]
-        public async Task UpdateApartment(string userId, [FromBody] ApartmentDto apartmentDto, CancellationToken cancellationToken = default)
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> UpdateApartment(string? userId, [FromBody] ApartmentDto apartmentDto, CancellationToken cancellationToken = default)
         {
+            if (userId == null || userId == String.Empty)
+            {
+                return BadRequest($"Invalid request. {nameof(userId)} cannnot be null or empty.");
+            }
+
             await _serviceManager.ApartmentService.UpdateAsync(userId, apartmentDto, cancellationToken);
+
+            return Ok();
         }
 
-        [HttpDelete("DeleteApartment/{userId}")]
-        public async Task DeleteApartment(string userId, CancellationToken cancellationToken = default)
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> DeleteApartment(string? userId, CancellationToken cancellationToken = default)
         {
+            if (userId == null || userId == String.Empty)
+            {
+                return BadRequest($"Invalid request. {nameof(userId)} cannnot be null or empty.");
+            }
+
             await _serviceManager.ApartmentService.DeleteAsync(userId, cancellationToken);
+
+            return Ok();
         }
     }
 }

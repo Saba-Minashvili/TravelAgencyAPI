@@ -15,7 +15,7 @@ namespace TravelAgency.Controllers
 
         public BookRequestController(IServiceManager serviceManager) => _serviceManager = serviceManager;
 
-        [HttpPost("SendBookRequest")]
+        [HttpPost]
         public async Task SendBookRequestAsync([FromBody] BookRequestDto bookRequestDto, CancellationToken cancellationToken = default)
         {
             await _serviceManager.BookRequestService.SendBookRequestAsync(bookRequestDto, cancellationToken);

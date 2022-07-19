@@ -1,11 +1,15 @@
 using Domain.Entities;
 using Domain.Entities.Authentication;
 using Domain.Repositories;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Middleware.Filters;
+using Middleware.Validators;
 using Persistence;
 using Persistence.Authentication;
 using Persistence.Mapper;
@@ -36,10 +40,15 @@ builder.Services.Configure<IdentityOptions>(options =>
 	options.Password.RequireLowercase = true;
 	options.Password.RequireNonAlphanumeric = true;
 	options.Password.RequireUppercase = true;
-	options.Password.RequiredLength = 7;
+	options.Password.RequiredLength = 8;
 });
 
 builder.Services.Configure<Token>(builder.Configuration.GetSection("JWT"));
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+	options.SuppressModelStateInvalidFilter = true;
+});
 
 builder.Services.AddCors(options =>
 	options.AddPolicy("TravelAgencyPolicy", builder =>
@@ -81,7 +90,12 @@ builder.Services.AddScoped<IJwtAuthenticationService, JwtAuthenticationService>(
 
 builder.Services.AddAutoMapper(typeof(ObjectMapper).Assembly);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+	options.Filters.Add<ValidationFilter>();
+})
+	.AddFluentValidation(configuration => configuration.RegisterValidatorsFromAssembly(typeof(RegisterUserDtoValidator).Assembly));
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 

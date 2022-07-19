@@ -15,15 +15,35 @@ namespace TravelAgency.Controllers
         public GuestRequestController(IServiceManager serviceManager) => _serviceManager = serviceManager;
 
         [HttpPut("[action]/{guestUserId}/{hostUserId}")]
-        public async Task AcceptGuestRequest(string? guestUserId, string? hostUserId, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> AcceptGuestRequest(string? guestUserId, string? hostUserId, CancellationToken cancellationToken = default)
         {
+            if (guestUserId != null && guestUserId != string.Empty)
+            {
+                if (hostUserId == null || hostUserId == string.Empty)
+                {
+                    return BadRequest($"Invalid request. UserId cannnot be null or empty.");
+                }
+            }
+
             await _serviceManager.GuestRequestService.AcceptGuestRequestAsync(guestUserId, hostUserId, cancellationToken);
+
+            return Ok();
         }
 
         [HttpPut("[action]/{guestUserId}/{hostUserId}")]
-        public async Task DeclineGuestRequest(string? guestUserId, string? hostUserId, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> DeclineGuestRequest(string? guestUserId, string? hostUserId, CancellationToken cancellationToken = default)
         {
+            if (guestUserId != null && guestUserId != string.Empty)
+            {
+                if (hostUserId == null || hostUserId == string.Empty)
+                {
+                    return BadRequest($"Invalid request. UserId cannnot be null or empty.");
+                }
+            }
+
             await _serviceManager.GuestRequestService.DeclineGuestRequestAsync(guestUserId, hostUserId, cancellationToken);
+
+            return Ok();
         }
     }
 }

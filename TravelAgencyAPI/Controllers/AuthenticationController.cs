@@ -17,7 +17,7 @@ namespace TravelAgency.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("Authenticate")]
+        [HttpPost]
         public async Task<TokenResponse?> AuthenticateAsync([FromBody] TokenRequest request)
         {
             return await _jwtAuth.Authenticate(request);

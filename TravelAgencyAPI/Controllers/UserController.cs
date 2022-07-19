@@ -16,21 +16,36 @@ namespace TravelAgency.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUsers(CancellationToken cancellationToken)
         {
-            var result = await _serviceManager.UserService.GetAllAsync(cancellationToken);
+            var users = await _serviceManager.UserService.GetAllAsync(cancellationToken);
 
-            return Ok(result);
+            if(users == null)
+            {
+                return BadRequest("Unable to get data of users");
+            }
+
+            return Ok(users);
         }
 
         [Authorize]
-        [HttpGet("[action]/{userId}")]
-        public async Task<IActionResult> GetById(string userId, CancellationToken cancellationToken = default)
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetUserById(string? userId, CancellationToken cancellationToken = default)
         {
-            var result = await _serviceManager.UserService.GetByIdAsync(userId, cancellationToken);
+            if (userId == null || userId == String.Empty)
+            {
+                return BadRequest($"Invalid request. {nameof(userId)} cannnot be null or empty.");
+            }
 
-            return Ok(result);
+            var user = await _serviceManager.UserService.GetByIdAsync(userId, cancellationToken);
+
+            if(user == null)
+            {
+                return BadRequest("Unable to get user.");
+            }
+
+            return Ok(user);
         }
 
-        [HttpPost("RegisterUser")]
+        [HttpPost]
         public async Task<IActionResult> RegisterUser([FromBody] RegisterUserDto userDto, CancellationToken cancellationToken = default)
         {
             await _serviceManager.UserService.CreateAsync(userDto, cancellationToken);
@@ -40,11 +55,21 @@ namespace TravelAgency.Controllers
 
         [Authorize]
         [HttpPut("{userId}")]
-        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserDto userDto, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> UpdateUser(string? userId, [FromBody] UpdateUserDto userDto, CancellationToken cancellationToken = default)
         {
-            var result = await _serviceManager.UserService.UpdateAsync(userId, userDto, cancellationToken);
+            if (userId == null || userId == String.Empty)
+            {
+                return BadRequest($"Invalid request. {nameof(userId)} cannnot be null or empty.");
+            }
 
-            return Ok(result);
+            var user = await _serviceManager.UserService.UpdateAsync(userId, userDto, cancellationToken);
+
+            if(user == null)
+            {
+                return BadRequest("Invalid request. Unable to update user.");
+            }
+
+            return Ok(user);
         }
     }
 }
